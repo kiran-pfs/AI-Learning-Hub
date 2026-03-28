@@ -106,67 +106,65 @@ export default function App() {
   }, [messages, isLoading]);
 
   // --- AI Logic (Hugging Face - Qwen) ---
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim() || isLoading) return;
+const handleSendMessage = async (e?: React.FormEvent) => {
+  e?.preventDefault();
+  if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
+  const userMessage: Message = {
+    role: 'user',
+    content: input,
+    timestamp: new Date()
+  };
+
+  setMessages(prev => [...prev, userMessage]);
+  setInput('');
+  setIsLoading(true);
+
+  try {
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct",
+      {
+        headers: { 
+          Authorization: `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY}`,
+          "Content-Type": "application/json" 
+        },
+        method: "POST",
+        body: JSON.stringify({ 
+          inputs: `<|im_start|>system\nYou are a professional developer and academic tutor. Provide clear, concise, and technically accurate explanations. Use markdown for code blocks.<|im_end|>\n<|im_start|>user\n${input}<|im_end|>\n<|im_start|>assistant`,
+          parameters: { max_new_tokens: 1024, return_full_text: false }
+        }),
+      }
+    );
+
+    const result = await response.json();
+    
+    let aiContent = "";
+    if (Array.isArray(result) && result[0].generated_text) {
+      aiContent = result[0].generated_text;
+    } else if (result.error) {
+      aiContent = "System error: " + result.error;
+    } else {
+      aiContent = "I apologize, but I encountered an unexpected response format.";
+    }
+
+    const assistantMessage: Message = {
+      role: 'assistant',
+      content: aiContent,
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      // మనం Qwen మోడల్‌ని వాడుతున్నాం
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct",
-        {
-          headers: { 
-            Authorization: `Bearer ${process.env.VITE_HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/json" 
-          },
-          method: "POST",
-          body: JSON.stringify({ 
-            inputs: `<|im_start|>system\nYou are a professional developer and academic tutor. Provide clear, concise, and technically accurate explanations. Use markdown for code blocks.<|im_end|>\n<|im_start|>user\n${input}<|im_end|>\n<|im_start|>assistant`,
-            parameters: { max_new_tokens: 1024, return_full_text: false }
-          }),
-        }
-      );
-
-      const result = await response.json();
-      
-      // Hugging Face API response formatting
-      let aiContent = "";
-      if (Array.isArray(result) && result[0].generated_text) {
-        aiContent = result[0].generated_text;
-      } else if (result.error) {
-        aiContent = "System error: " + result.error;
-      } else {
-        aiContent = "I apologize, but I encountered an unexpected response format.";
-      }
-
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: aiContent,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("AI Error:", error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: "System error: Failed to connect to the AI engine. Please check your API key and connection.",
-        timestamp: new Date()
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    setMessages(prev => [...prev, assistantMessage]);
+  } catch (error) {
+    console.error("AI Error:", error);
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: "System error: Failed to connect to the AI engine. Please check your API key and connection.",
+      timestamp: new Date()
+    }]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
