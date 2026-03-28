@@ -28,7 +28,7 @@ This project is **100% Open Source** and **Non-Commercial**. It is built with th
 
 * **License:** Licensed under the [MIT License](LICENSE).
 * **Contributions:** Community contributions are highly encouraged.
-* **Ethics:** Please refer to our [Code of Conduct](CODE_OF_CONDUCT.md) for participation guidelines.
+* **Ethics:** Please refer to our [Code of Conduct](CODE_OF_CONDUCT) for participation guidelines.
 
 ---
 
