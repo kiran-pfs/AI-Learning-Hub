@@ -1,8 +1,7 @@
 import { Handler } from '@netlify/functions';
 
 export const handler: Handler = async (event) => {
-  // కేవలం POST రిక్వెస్ట్‌లను మాత్రమే అనుమతిస్తుంది
-  if (event.httpMethod !== 'POST') {
+    if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
