@@ -105,70 +105,65 @@ export default function App() {
     }
   }, [messages, isLoading]);
 
-  // --- AI Logic (Hugging Face - Qwen) ---
-const handleSendMessage = async (e?: React.FormEvent) => {
-  e?.preventDefault();
-  if (!input.trim() || isLoading) return;
+  // --- AI Logic (Netlify Functions) ---
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-  const userMessage: Message = {
-    role: 'user',
-    content: input,
-    timestamp: new Date()
-  };
-
-  setMessages(prev => [...prev, userMessage]);
-  setInput('');
-  setIsLoading(true);
-
-  try {
-    const response = await fetch(
-      "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct",
-      {
-        headers: { 
-          Authorization: `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY}`,
-          "Content-Type": "application/json" 
-        },
-        method: "POST",
-        body: JSON.stringify({ 
-          inputs: `<|im_start|>system\nYou are a professional developer and academic tutor. Provide clear, concise, and technically accurate explanations. Use markdown for code blocks.<|im_end|>\n<|im_start|>user\n${input}<|im_end|>\n<|im_start|>assistant`,
-          parameters: { max_new_tokens: 1024, return_full_text: false }
-        }),
-      }
-    );
-
-    const result = await response.json();
-    
-    let aiContent = "";
-    if (Array.isArray(result) && result[0].generated_text) {
-      aiContent = result[0].generated_text;
-    } else if (result.error) {
-      aiContent = "System error: " + result.error;
-    } else {
-      aiContent = "I apologize, but I encountered an unexpected response format.";
-    }
-
-    const assistantMessage: Message = {
-      role: 'assistant',
-      content: aiContent,
+    const userMessage: Message = {
+      role: 'user',
+      content: input,
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, assistantMessage]);
-  } catch (error) {
-    console.error("AI Error:", error);
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: "System error: Failed to connect to the AI engine. Please check your API key and connection.",
-      timestamp: new Date()
-    }]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Netlify Function ని పిలవడం (CORS ఎర్రర్ రాదు)
+      const response = await fetch("/.netlify/functions/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: input }),
+      });
+
+      const result = await response.json();
+      
+      let aiContent = "";
+      // Netlify Function నుండి వచ్చే డేటా ని చెక్ చేయడం
+      if (Array.isArray(result) && result[0].generated_text) {
+        aiContent = result[0].generated_text;
+      } else if (result.error) {
+        aiContent = "AI Engine error: " + result.error;
+      } else {
+        aiContent = "I apologize, but I encountered an unexpected response format.";
+      }
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: aiContent,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("AI Error:", error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "System error: Failed to connect to the AI engine. Please check your Netlify logs.",
+        timestamp: new Date()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      {/* Sidebar - Same UI but updated Model name */}
+      {/* Sidebar */}
       <AnimatePresence mode="wait">
         {isSidebarOpen && (
           <motion.aside
@@ -318,7 +313,7 @@ const handleSendMessage = async (e?: React.FormEvent) => {
           </form>
         </div>
 
-        {/* Footer for Credits */}
+        {/* Footer */}
         <footer className="px-6 py-6 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50">
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-[10px] text-brand-muted leading-relaxed">
