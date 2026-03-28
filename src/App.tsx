@@ -1,13 +1,12 @@
-import { GoogleGenAI } from "@google/genai";
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  BookOpen, 
-  Code, 
-  Send, 
-  User, 
-  Bot, 
-  Info, 
+import {  
+  MessageSquare,  
+  BookOpen,  
+  Code,  
+  Send,  
+  User,  
+  Bot,  
+  Info,  
   Github,
   ChevronRight,
   Terminal,
@@ -40,7 +39,6 @@ interface Message {
 }
 
 // --- Components ---
-
 const CodeBlock = ({ language, value, theme }: { language: string, value: string, theme: 'dark' | 'light' }) => {
   const [copied, setCopied] = useState(false);
 
@@ -54,7 +52,7 @@ const CodeBlock = ({ language, value, theme }: { language: string, value: string
     <div className="relative group my-4 rounded-xl overflow-hidden border border-brand-border">
       <div className="flex items-center justify-between px-4 py-2 bg-brand-gray/50 border-b border-brand-border">
         <span className="text-xs font-mono text-brand-muted uppercase">{language || 'code'}</span>
-        <button 
+        <button  
           onClick={handleCopy}
           className="p-1.5 hover:bg-brand-muted/10 rounded-md transition-colors text-brand-muted hover:text-brand-blue"
         >
@@ -83,7 +81,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hello! I'm the AI Learning Hub tutor, powered by Gemini 3 Flash. How can I assist your development journey today?",
+      content: "Hello! I'm the AI Learning Hub tutor. I'm here to help you master programming and AI concepts. How can I assist your journey today?",
       timestamp: new Date()
     }
   ]);
@@ -107,7 +105,7 @@ export default function App() {
     }
   }, [messages, isLoading]);
 
-  // --- AI Logic (Gemini) ---
+  // --- AI Logic (Hugging Face - Qwen) ---
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -123,21 +121,33 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `You are a professional developer and academic tutor. Provide clear, concise, and technically accurate explanations. Use markdown for code blocks. Previous conversation:\n${messages.map(m => `${m.role}: ${m.content}`).join('\n')}\n\nUser: ${input}` }]
-          }
-        ],
-        config: {
-          systemInstruction: "You are a professional developer and academic tutor. Provide clear, concise, and technically accurate explanations. Use markdown for code blocks.",
+      // మనం Qwen మోడల్‌ని వాడుతున్నాం
+      const response = await fetch(
+        "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct",
+        {
+          headers: { 
+            Authorization: `Bearer ${process.env.VITE_HUGGINGFACE_API_KEY}`,
+            "Content-Type": "application/json" 
+          },
+          method: "POST",
+          body: JSON.stringify({ 
+            inputs: `<|im_start|>system\nYou are a professional developer and academic tutor. Provide clear, concise, and technically accurate explanations. Use markdown for code blocks.<|im_end|>\n<|im_start|>user\n${input}<|im_end|>\n<|im_start|>assistant`,
+            parameters: { max_new_tokens: 1024, return_full_text: false }
+          }),
         }
-      });
+      );
 
-      const aiContent = response.text || "I apologize, but I encountered an unexpected response format from the AI engine.";
+      const result = await response.json();
+      
+      // Hugging Face API response formatting
+      let aiContent = "";
+      if (Array.isArray(result) && result[0].generated_text) {
+        aiContent = result[0].generated_text;
+      } else if (result.error) {
+        aiContent = "System error: " + result.error;
+      } else {
+        aiContent = "I apologize, but I encountered an unexpected response format.";
+      }
 
       const assistantMessage: Message = {
         role: 'assistant',
@@ -147,10 +157,10 @@ export default function App() {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("Gemini Error:", error);
+      console.error("AI Error:", error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "System error: Failed to connect to the AI engine. Please check your connection.",
+        content: "System error: Failed to connect to the AI engine. Please check your API key and connection.",
         timestamp: new Date()
       }]);
     } finally {
@@ -160,7 +170,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      {/* Sidebar */}
+      {/* Sidebar - Same UI but updated Model name */}
       <AnimatePresence mode="wait">
         {isSidebarOpen && (
           <motion.aside
@@ -176,7 +186,7 @@ export default function App() {
                   <Zap size={24} fill="currentColor" />
                   <span className="text-lg font-bold tracking-tight">Resources</span>
                 </div>
-                <button 
+                <button  
                   onClick={() => setIsSidebarOpen(false)}
                   className="p-2 hover:bg-brand-muted/10 rounded-lg lg:hidden"
                 >
@@ -189,11 +199,11 @@ export default function App() {
                   <h3 className="text-xs font-bold uppercase tracking-widest text-brand-muted mb-4">Open Source Resources</h3>
                   <div className="space-y-2">
                     {[
-                      { icon: <Github size={16} />, label: "GitHub Repository", href: "https://github.com" },
+                      { icon: <Github size={16} />, label: "GitHub Repository", href: "https://github.com/kiran-pfs/AI-Learning-Hub" },
                       { icon: <ExternalLink size={16} />, label: "Netlify Docs", href: "https://docs.netlify.com" },
                       { icon: <Cpu size={16} />, label: "Hugging Face", href: "https://huggingface.co" },
                     ].map((link) => (
-                      <a 
+                      <a  
                         key={link.label}
                         href={link.href}
                         target="_blank"
@@ -210,8 +220,8 @@ export default function App() {
                 <section>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-brand-muted mb-4">Current Model</h3>
                   <div className="p-4 rounded-xl bg-brand-blue/5 border border-brand-blue/10">
-                    <p className="text-sm font-semibold text-brand-blue">Gemini 3 Flash</p>
-                    <p className="text-xs text-brand-muted mt-1">Next-generation multimodal AI model.</p>
+                    <p className="text-sm font-semibold text-brand-blue">Qwen 2.5 (72B)</p>
+                    <p className="text-xs text-brand-muted mt-1">High-performance open-source LLM.</p>
                   </div>
                 </section>
               </div>
@@ -222,7 +232,7 @@ export default function App() {
                     <User size={16} />
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    <p className="text-xs font-bold truncate">Developer Mode</p>
+                    <p className="text-xs font-bold truncate">Independent Developer</p>
                     <p className="text-[10px] text-brand-muted">v2.5.0-stable</p>
                   </div>
                 </div>
@@ -232,16 +242,12 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Header */}
-        <header className="glass-header px-6 py-4 flex items-center justify-between">
+        <header className="px-6 py-4 flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-primary)]/80 backdrop-blur-md">
           <div className="flex items-center gap-4">
             {!isSidebarOpen && (
-              <button 
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-2 hover:bg-brand-muted/10 rounded-lg"
-              >
+              <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-brand-muted/10 rounded-lg">
                 <Menu size={20} />
               </button>
             )}
@@ -252,147 +258,79 @@ export default function App() {
               <h1 className="text-lg font-bold tracking-tight">AI Learning Hub</h1>
             </div>
           </div>
-
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2.5 bg-brand-muted/10 hover:bg-brand-muted/20 rounded-xl transition-all text-brand-blue"
-          >
+          <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2.5 bg-brand-muted/10 hover:bg-brand-muted/20 rounded-xl transition-all text-brand-blue">
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </header>
 
-        {/* Chat Window */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8"
-        >
+        {/* Messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
           <div className="max-w-4xl mx-auto space-y-8">
-            <AnimatePresence initial={false}>
-              {messages.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                  className={cn(
-                    "flex gap-4",
-                    msg.role === 'user' ? "flex-row-reverse" : "flex-row"
-                  )}
-                >
-                  <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
-                    msg.role === 'user' ? "bg-brand-blue text-white" : "bg-[var(--bg-secondary)] border border-[var(--border-color)] text-brand-blue"
-                  )}>
-                    {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
-                  </div>
-                  
-                  <div className={cn(
-                    "flex flex-col gap-2 max-w-[85%] md:max-w-[75%]",
-                    msg.role === 'user' ? "items-end" : "items-start"
-                  )}>
-                    <div className={cn(
-                      "px-6 py-4 rounded-2xl shadow-sm",
-                      msg.role === 'user' 
-                        ? "bg-brand-blue text-white rounded-tr-none" 
-                        : "bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-tl-none"
-                    )}>
-                      <ReactMarkdown
-                        components={{
-                          code({ node, className, children, ...props }: any) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            const inline = !className;
-                            return !inline ? (
-                              <CodeBlock
-                                language={match ? match[1] : ''}
-                                value={String(children).replace(/\n$/, '')}
-                                theme={isDarkMode ? 'dark' : 'light'}
-                              />
-                            ) : (
-                              <code className="bg-brand-muted/20 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
-                                {children}
-                              </code>
-                            );
-                          }
-                        }}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
-                    </div>
-                    <span className="text-[10px] text-brand-muted font-medium uppercase tracking-widest px-1">
-                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {isLoading && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex gap-4"
-              >
-                <div className="w-10 h-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-brand-blue flex items-center justify-center">
-                  <Bot size={20} />
+            {messages.map((msg, idx) => (
+              <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex gap-4", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", msg.role === 'user' ? "bg-brand-blue text-white" : "bg-[var(--bg-secondary)] border border-[var(--border-color)] text-brand-blue")}>
+                  {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
                 </div>
-                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] px-6 py-4 rounded-2xl rounded-tl-none flex items-center gap-3">
-                  <span className="text-sm font-medium text-brand-muted animate-pulse">Typing...</span>
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-brand-blue rounded-full animate-bounce [animation-delay:-0.3s]" />
-                    <div className="w-1.5 h-1.5 bg-brand-blue rounded-full animate-bounce [animation-delay:-0.15s]" />
-                    <div className="w-1.5 h-1.5 bg-brand-blue rounded-full animate-bounce" />
+                <div className={cn("flex flex-col gap-2 max-w-[85%] md:max-w-[75%]", msg.role === 'user' ? "items-end" : "items-start")}>
+                  <div className={cn("px-6 py-4 rounded-2xl", msg.role === 'user' ? "bg-brand-blue text-white rounded-tr-none" : "bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-tl-none")}>
+                    <ReactMarkdown components={{
+                      code({ node, className, children, ...props }: any) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const inline = !className;
+                        return !inline ? (
+                          <CodeBlock language={match ? match[1] : ''} value={String(children).replace(/\n$/, '')} theme={isDarkMode ? 'dark' : 'light'} />
+                        ) : (
+                          <code className="bg-brand-muted/20 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>
+                        );
+                      }
+                    }}>
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
+                  <span className="text-[10px] text-brand-muted font-medium uppercase tracking-widest px-1">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </motion.div>
+            ))}
+            {isLoading && (
+              <div className="flex gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] flex items-center justify-center text-brand-blue"><Bot size={20} /></div>
+                <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] px-6 py-4 rounded-2xl rounded-tl-none flex items-center gap-3">
+                  <span className="text-sm font-medium text-brand-muted animate-pulse">Thinking...</span>
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Input Area */}
-        <div className="p-6 border-t border-[var(--border-color)] bg-[var(--bg-primary)]">
-          <form 
-            onSubmit={handleSendMessage}
-            className="max-w-4xl mx-auto relative"
-          >
+        {/* Input */}
+        <div className="p-6 border-t border-[var(--border-color)]">
+          <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a technical question..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl px-6 py-5 pr-20 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
+              placeholder="Ask about AI or Programming..."
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl px-6 py-5 pr-20 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
             />
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="absolute right-3 top-3 bottom-3 px-5 bg-brand-blue text-white rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-brand-blue/20 transition-all"
-            >
+            <button type="submit" disabled={!input.trim() || isLoading} className="absolute right-3 top-3 bottom-3 px-5 bg-brand-blue text-white rounded-xl disabled:opacity-50">
               <Send size={18} />
             </button>
           </form>
         </div>
 
-        {/* Footer */}
-        <footer className="px-6 py-8 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-muted">System Architecture</p>
-              <p className="text-xs text-brand-muted leading-relaxed max-w-md">
-                AI Integration: Powered by Gemini 3 Flash, configured with a specialized system instruction to act as a formal yet encouraging academic tutor.
-              </p>
-            </div>
-            <div className="flex flex-col md:items-end gap-4">
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="text-brand-muted">Infrastructure</span>
-                <a 
-                  href="https://www.netlify.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-brand-blue hover:underline flex items-center gap-1"
-                >
-                  This site is powered by Netlify <ExternalLink size={12} />
-                </a>
-              </div>
-              <p className="text-[10px] text-brand-muted font-mono">© 2026 AI LEARNING HUB // STABLE_BUILD_V2.5</p>
+        {/* Footer for Credits */}
+        <footer className="px-6 py-6 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-[10px] text-brand-muted leading-relaxed">
+              Open Source AI Tutoring Platform | Optimized for Educational Excellence.
+            </p>
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <span className="text-brand-muted">Infrastructure</span>
+              <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer" className="text-brand-blue flex items-center gap-1">
+                Powered by Netlify <ExternalLink size={12} />
+              </a>
             </div>
           </div>
         </footer>
