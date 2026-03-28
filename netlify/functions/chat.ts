@@ -8,7 +8,7 @@ export const handler: Handler = async (event) => {
 
   try {
     const { message } = JSON.parse(event.body || '{}');
-    const apiKey = process.env.VITE_HUGGINGFACE_API_KEY;
+    const apiKey = process.env.HUGGINGFACE_API_KEY;
 
     // Use environment variable for API URL if available, otherwise use default
     const apiUrl = process.env.HUGGINGFACE_API_URL || 
