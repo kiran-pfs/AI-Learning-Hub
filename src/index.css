@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-blue: #3b82f6;
+  --color-brand-dark: #121212;
+  --color-brand-gray: #1e1e1e;
+  --color-brand-light: #e5e7eb;
+  --color-brand-muted: #9ca3af;
+  --color-brand-border: #2a2a2a;
+}
+
+@layer base {
+  :root {
+    --bg-primary: #ffffff;
+    --text-primary: #121212;
+    --bg-secondary: #f3f4f6;
+    --border-color: #e5e7eb;
+    --accent-color: #3b82f6;
+    --ai-bubble: #f3f4f6;
+    --user-bubble: #3b82f6;
+  }
+
+  .dark {
+    --bg-primary: #121212;
+    --text-primary: #e5e7eb;
+    --bg-secondary: #1e1e1e;
+    --border-color: #2a2a2a;
+    --accent-color: #3b82f6;
+    --ai-bubble: #1e1e1e;
+    --user-bubble: #3b82f6;
+  }
+
+  body {
+    @apply transition-colors duration-300;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+  }
+
+  .glass-header {
+    @apply sticky top-0 z-50 backdrop-blur-md border-b;
+    background-color: rgba(var(--bg-primary-rgb), 0.7);
+    border-color: var(--border-color);
+  }
+
+  .markdown-body {
+    @apply text-sm leading-relaxed;
+  }
+  
+  .markdown-body pre {
+    @apply my-4 rounded-xl overflow-hidden border;
+    border-color: var(--border-color);
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-muted/20 rounded-full hover:bg-brand-muted/40 transition-colors;
+  }
+}
