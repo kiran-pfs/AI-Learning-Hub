@@ -16,6 +16,7 @@
 @layer base {
   :root {
     --bg-primary: #ffffff;
+    --bg-primary-rgb: 255, 255, 255; /* కొత్తగా యాడ్ చేసింది */
     --text-primary: #121212;
     --bg-secondary: #f3f4f6;
     --border-color: #e5e7eb;
@@ -26,6 +27,7 @@
 
   .dark {
     --bg-primary: #121212;
+    --bg-primary-rgb: 18, 18, 18; /* కొత్తగా యాడ్ చేసింది */
     --text-primary: #e5e7eb;
     --bg-secondary: #1e1e1e;
     --border-color: #2a2a2a;
@@ -35,7 +37,7 @@
   }
 
   body {
-    @apply transition-colors duration-300;
+    @apply transition-colors duration-300 antialiased; /* antialiased యాడ్ చేశాను */
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: var(--font-sans);
@@ -43,14 +45,23 @@
 
   .glass-header {
     @apply sticky top-0 z-50 backdrop-blur-md border-b;
-    background-color: rgba(var(--bg-primary-rgb), 0.7);
+    background-color: rgba(var(--bg-primary-rgb), 0.8);
     border-color: var(--border-color);
   }
 
+  /* Markdown Content Styling - AI responses నీట్‌గా ఉండటానికి */
   .markdown-body {
     @apply text-sm leading-relaxed;
   }
   
+  .markdown-body p {
+    @apply mb-3 last:mb-0;
+  }
+
+  .markdown-body ul, .markdown-body ol {
+    @apply ml-6 mb-3 list-disc;
+  }
+
   .markdown-body pre {
     @apply my-4 rounded-xl overflow-hidden border;
     border-color: var(--border-color);
