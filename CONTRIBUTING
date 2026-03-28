@@ -1,0 +1,14 @@
+# Contributing to AI Learning Hub
+
+First of all, thank you for showing interest in this project! ❤️
+
+## How to Get Involved?
+- **Bug Reports:** If you find a bug, please open a GitHub Issue with detailed reproduction steps.
+- **Feature Requests:** Have a cool idea? Let us know in the issues!
+- **Pull Requests:** 1. Fork the repo.
+  2. Create your branch (`git checkout -b feature/NewFeature`).
+  3. Commit your changes with clear messages.
+  4. Push and open a Pull Request.
+
+## Coding Style
+Please ensure your code is clean and follows the existing project structure and styling (Tailwind CSS).
